@@ -1,0 +1,73 @@
+> 出现问题： Anaconda navigator 点击launch无法打开浏览器
+
+> 一定是出现了问题，但是因为无反应，重要的事是先进入jupyter
+
+1. 第一步： 找出一个进入jupyter的方法，让使用者先实现最开始的目的，或者是最重要的目的
+
+>> 解决方法：
+
+    1. >> 直接访问网址[http://localhost:8888/tree?](http://localhost:8888/tree?)
+    2. >> 需要token，win+R cmd进入命令行jupyter server list 得到token
+    3. >> 输入token，访问并使用Jupyter
+1. 在确定用户实现曲线实现当前需求的情况下，开始探究问题，解决问题
+    1. >> 分析问题：涉及三个主要部分 navigator，python，Jupyter
+    2. >> 逐个淘汰这些可能
+2. 淘汰开始
+    1. anaconda问题：
+        1. anaconda-navigator --reset 无效
+        2. 环境，路径配置anaconda 无效
+
+# 配置路径
+
+在 Windows 系统上安装 Anaconda 时，安装程序确实会询问是否将 Anaconda 添加到系统的 PATH 环境变量 ，如果勾选了 “将 Anaconda 添加到 PATH 环境变量” 选项，理论上会自动配置。没自动添加成功，可能是以下原因：
+安装时未勾选添加到环境变量选项
+安装过程中有一步是询问是否添加到系统 PATH 环境变量，若没勾选，安装程序就不会自动配置 。解决办法是手动添加，步骤如下：
+
+右键单击 “此电脑”，选择 “属性”，点击 “高级系统设置”，在弹出窗口点击 “环境变量”。
+在 “系统变量” 里找到 “Path” 变量，选中后点击 “编辑”。
+点击 “新建”，把 Anaconda 安装路径（一般是C:\Users\用户名\Anaconda3 ）和其Scripts子路径（如C:\Users\用户名\Anaconda3\Scripts ）分别添加进去。
+依次点击 “确定” 保存设置。
+
+        3. anaconda-navigator --verbose 日志，看不到logs，无效
+
+>> 但是，其实最多就是anaconda 环境配置有问题，排除之后就能不用看了，用conda --version查看即可 （这里已经浪费了很多时间）
+
+    2. 其他情况排除：中文命名，tmp文件
+
+[zhuanlan.zhihu.com](https://zhuanlan.zhihu.com/p/408165098)
+
+    1. Jupyter notebook
+        1. 命令行打开：Jupyter notebook，并没有打开浏览器（还在找navigator，太有问题了）
+        2. jupyter notebook --generate-config ，修改py文件中关于server.open_browser的部分，将它调整为true，其实这点是有用
+        3. jupyter notebook --config=~/.jupyter/jupyter_notebook_config.py 强制其利用配置文件，其实出现了很明显的不同，但是没有关注到一开始
+        4. 尝试排出python的问题：（成功，所以不是python的问题）
+
+你在命令行试一下输入 `python` 进入 Python 解释器。
+*   输入以下两行命令：
+
+```other
+import webbrowser
+    webbrowser.open_new_tab('http://www.google.com')
+```
+
+        1. jupyter notebook --show-config  看配置有没有被用，但是确实在同一个文件夹，其实这里有一个josn的文件，我没有注意到，就是关于serverbrowser的
+        2. jupyter notebook --debug其实毫无作用，但是看出来openbrowser = true
+        3. 尝试
+
+```bash
+jupyter notebook --config=~/.jupyter/jupyter_notebook_config.py ^
+--ServerApp.open_browser=True ^
+--browser="cmd /c start chrome %s"
+```
+
+这个代码有三个部分，第一是强制读配置文件，一个是强制打开browser，另一个是给了一个浏览器的地址
+
+            1. 在前面过程中，其实第二个打开是被证实无用了，所以要解决其他问题
+            2. jupyter notebook --browser="cmd /c start chrome %s"这个代码也可以打开浏览器
+                1. 这里存在两个可能，第一个就是它用了json的地址（前面没有寻找浏览器的尝试），而且json文件中浏览器的地址有错误
+                2. 第二个就是Jupyter无法读取默认浏览器的地址（我也不知道为什么）
+
+> 最后解决的方案：给一个正确的浏览器地址
+
+    1. >> 删除json格式文件
+    2. >> 改变py的配置文件
